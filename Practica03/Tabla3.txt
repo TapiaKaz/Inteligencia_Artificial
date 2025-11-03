@@ -1,0 +1,16 @@
+Productora,Usuario,Genero,Calificacion
+Universal,F,Terror,1
+Universal,M,Accion,3
+Warner,F,Drama,2
+Disney,M,Drama,2
+Warner,F,Accion,2
+Disney,M,Terror,3
+Universal,F,Terror,3
+Disney,M,Drama,1
+Warner,F,Accion,2
+Warner,M,Accion,1
+Disney,F,Drama,2
+Universal,F,Terror,3
+Warner,F,Terror,3
+Disney,M,Accion,2
+Universal,M,Drama,1

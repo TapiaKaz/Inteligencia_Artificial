@@ -211,12 +211,12 @@ int main(int argc, char* argv[]) {
         bool is_valid = calc.check_validity(formula);
 
         if (is_valid) {
-            std::cout << "✓ La fórmula es VÁLIDA" << std::endl;
+            std::cout << "✓ La fórmula es True (VÁLIDA)" << std::endl;
             std::cout << "\n";
             calc.generate_and_open_pdf(formula, "proof_tree");
         } else {
-            std::cout << "✗ La fórmula NO es válida" << std::endl;
-            std::cout << "No se generará árbol de prueba." << std::endl;
+            calc.generate_and_open_pdf(formula, "proof_tree");
+            std::cout << "La fórmula es False (no valida)" << std::endl;
         }
 
     } catch (const std::exception& e) {

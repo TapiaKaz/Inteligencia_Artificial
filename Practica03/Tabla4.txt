@@ -1,0 +1,23 @@
+Director,Productora,Usuario,Género,Calificación
+Hnos. Coen,Universal,F,Terror,1
+Del Toro,Universal,M,Acción,3
+Buñuel,Warner,F,Drama,2
+Buñuel,Disney,M,Drama,2
+Hnos. Coen,Warner,F,Acción,2
+Del Toro,Disney,M,Terror,3
+Del Toro,Universal,F,Terror,3
+Hnos. Coen,Disney,M,Drama,1
+Buñuel,Warner,F,Acción,2
+Del Toro,Warner,M,Acción,1
+Buñuel,Disney,F,Drama,2
+Hnos. Coen,Universal,F,Terror,3
+Hnos. Coen,Warner,F,Terror,3
+Del Toro,Disney,M,Acción,2
+Buñuel,Universal,M,Drama,1
+Buñuel,Warner,M,Acción,1
+Del Toro,Warner,F,Acción,2
+Buñuel,Disney,M,Drama,3
+Hnos. Coen,Universal,M,Terror,1
+Hnos. Coen,Warner,F,Terror,1
+Del Toro,Disney,F,Acción,2
+Buñuel,Universal,M,Drama,3

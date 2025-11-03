@@ -1,0 +1,10 @@
+Genero,Calificacion
+Terror,1
+Accion,3
+Drama,2
+Drama,2
+Accion,2
+Terror,3
+Terror,3
+Drama,1
+Accion,2

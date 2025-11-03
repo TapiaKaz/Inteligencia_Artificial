@@ -1,0 +1,10 @@
+Usuario,Genero,Calificacion
+F,Terror,1
+M,Accion,3
+F,Drama,2
+M,Drama,2
+F,Accion,2
+M,Terror,3
+F,Terror,3
+M,Drama,1
+F,Accion,2

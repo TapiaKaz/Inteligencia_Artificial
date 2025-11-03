@@ -1,261 +1,293 @@
 /*************************************
  *  SISTEMA DE CÁLCULO DE SECUENTES  *
- *  Con generación de árbol en LaTeX *
+ *  Generación de árboles en LaTeX   *
+ *  CON CONTEXTOS COMPLETOS          *
 *************************************/
 
 %--------------------------------------
 % DEFINICIÓN DE OPERADORES LÓGICOS
 %--------------------------------------
-:- op(1, fx, neg).
-:- op(2, xfx, or).
-:- op(2, xfx, and).
-:- op(2, xfx, imp).
-:- op(2, xfx, dimp).
+:- op(1, fx, neg).    % Operador de negación (~)
+:- op(2, xfx, or).    % Disyunción (∨)
+:- op(2, xfx, and).   % Conjunción (∧)
+:- op(2, xfx, imp).   % Implicación (→)
+:- op(2, xfx, dimp).  % Doble implicación (↔)
 
 
 %--------------------------------------
-% PREDICADO PRINCIPAL CON LATEX
+% PREDICADO PRINCIPAL
 %--------------------------------------
-checkExpressionLatex(Formula) :-
-    lpk_latex([], [Formula], [], [], Tree),
-    write('\\documentclass{article}\n'),
-    write('\\usepackage{bussproofs}\n'),
-    write('\\usepackage{amsmath}\n'),
-    write('\\usepackage{amssymb}\n'),
-    write('\\begin{document}\n\n'),
-    write('\\begin{prooftree}\n'),
-    print_tree(Tree),
-    write('\\end{prooftree}\n\n'),
-    write('\\end{document}\n').
-
-% Versión original sin LaTeX
 checkExpression(Formula) :-
-    lpk([], [Formula], [], []).
-
+    write('\\documentclass{article}'), nl,
+	write('\\usepackage{bussproofs}'), nl,
+	write('\\usepackage{amsmath}'), nl,
+    write('\\usepackage{amssymb}'), nl,
+	write('\\usepackage[utf8]{inputenc}'), nl,
+    write('\\usepackage{xcolor}'),nl,
+	nl,
+	write('% Definición de comandos para operadores lógicos'), nl,
+	write('\\newcommand{\\NEG}{\\neg}'), nl,
+	write('\\newcommand{\\AND}{\\land}'), nl,
+	write('\\newcommand{\\OR}{\\lor}'), nl,
+	write('\\newcommand{\\IMP}{\\rightarrow}'), nl,
+	write('\\newcommand{\\DIMP}{\\leftrightarrow}'), nl,
+	nl,
+	write('\\begin{document}'), nl,
+    write('\\begin{prooftree}'), nl,
+    lpk([], [Formula], [], [], ArbolDerivacion),
+    escribir_arbol(ArbolDerivacion),
+    write('\\end{prooftree}'), nl,
+	write('\\end{document}'), nl.
 
 %--------------------------------------
-% MOTOR CON GENERACIÓN DE ÁRBOL
+% MOTOR DEL CÁLCULO DE SECUENTES
 %--------------------------------------
-lpk_latex([], [], [Var | RestoIzq], VarsDer, Tree) :-
+% CAMBIO CLAVE: Ahora las estructuras incluyen VarsIzq y VarsDer
+
+%--------------------------------------
+% CASO BASE: Coincidencia entre ambos lados
+%--------------------------------------
+lpk([], [], [Var | RestoIzq], VarsDer, ArbolDerivacion) :-
     (member(Var, VarsDer) ->
-        Tree = axiom([], [Var], 'Axioma')
+        % CAMBIO: axioma ahora incluye los contextos completos
+        ArbolDerivacion = axioma([Var], [Var], [Var], VarsDer)
     ;
-        lpk_latex([], [], RestoIzq, VarsDer, Tree)
+        lpk([], [], RestoIzq, VarsDer, ArbolDerivacion)
     ).
 
-lpk_latex([Atom | RestoIzq], LadoDer, VarsIzq, VarsDer, Tree) :-
+
+%--------------------------------------
+% VARIABLES ATÓMICAS
+%--------------------------------------
+lpk([Atom | RestoIzq], LadoDer, VarsIzq, VarsDer, ArbolDerivacion) :-
     atom(Atom),
     append([Atom], VarsIzq, NuevasVarsIzq),
-    lpk_latex(RestoIzq, LadoDer, NuevasVarsIzq, VarsDer, Tree).
+    lpk(RestoIzq, LadoDer, NuevasVarsIzq, VarsDer, ArbolDerivacion).
 
-lpk_latex(LadoIzq, [Atom | RestoDer], VarsIzq, VarsDer, Tree) :-
+lpk(LadoIzq, [Atom | RestoDer], VarsIzq, VarsDer, ArbolDerivacion) :-
     atom(Atom),
     append([Atom], VarsDer, NuevasVarsDer),
-    lpk_latex(LadoIzq, RestoDer, VarsIzq, NuevasVarsDer, Tree).
+    lpk(LadoIzq, RestoDer, VarsIzq, NuevasVarsDer, ArbolDerivacion).
 
-% Negación izquierda
-lpk_latex([neg F | RestoIzq], LadoDer, VarsIzq, VarsDer, rule(SubTree, RestoIzq, [F|LadoDer], 'neg L')) :-
+
+%--------------------------------------
+% NEGACIÓN (¬)
+%--------------------------------------
+lpk([neg F | RestoIzq], LadoDer, VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F], LadoDer, NuevoDer),
-    lpk_latex(RestoIzq, NuevoDer, VarsIzq, VarsDer, SubTree).
+    lpk(RestoIzq, NuevoDer, VarsIzq, VarsDer, SubArbol),
+    % CAMBIO: unaria ahora incluye los contextos
+    ArbolDerivacion = unaria(SubArbol, [neg F | RestoIzq], LadoDer, VarsIzq, VarsDer, 'neg-izq').
 
-% Negación derecha
-lpk_latex(LadoIzq, [neg F | RestoDer], VarsIzq, VarsDer, rule(SubTree, [F|LadoIzq], RestoDer, 'neg R')) :-
+lpk(LadoIzq, [neg F | RestoDer], VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F], LadoIzq, NuevoIzq),
-    lpk_latex(NuevoIzq, RestoDer, VarsIzq, VarsDer, SubTree).
+    lpk(NuevoIzq, RestoDer, VarsIzq, VarsDer, SubArbol),
+    ArbolDerivacion = unaria(SubArbol, LadoIzq, [neg F | RestoDer], VarsIzq, VarsDer, 'neg-der').
 
-% Disyunción izquierda
-lpk_latex([F1 or F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, rule2(SubTree1, SubTree2, RestoIzq, LadoDer, 'or L')) :-
+
+%--------------------------------------
+% DISYUNCIÓN (∨)
+%--------------------------------------
+lpk([F1 or F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1], RestoIzq, Caso1),
     append([F2], RestoIzq, Caso2),
-    lpk_latex(Caso1, LadoDer, VarsIzq, VarsDer, SubTree1),
-    lpk_latex(Caso2, LadoDer, VarsIzq, VarsDer, SubTree2).
+    lpk(Caso1, LadoDer, VarsIzq, VarsDer, SubArbol1),
+    lpk(Caso2, LadoDer, VarsIzq, VarsDer, SubArbol2),
+    % CAMBIO: binaria ahora incluye los contextos
+    ArbolDerivacion = binaria(SubArbol1, SubArbol2, [F1 or F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, 'or-izq').
 
-% Disyunción derecha
-lpk_latex(LadoIzq, [F1 or F2 | RestoDer], VarsIzq, VarsDer, rule(SubTree, LadoIzq, [F1,F2|RestoDer], 'or R')) :-
+lpk(LadoIzq, [F1 or F2 | RestoDer], VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1, F2], RestoDer, NuevoDer),
-    lpk_latex(LadoIzq, NuevoDer, VarsIzq, VarsDer, SubTree).
+    lpk(LadoIzq, NuevoDer, VarsIzq, VarsDer, SubArbol),
+    ArbolDerivacion = unaria(SubArbol, LadoIzq, [F1 or F2 | RestoDer], VarsIzq, VarsDer, 'or-der').
 
-% Conjunción izquierda
-lpk_latex([F1 and F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, rule(SubTree, [F1,F2|RestoIzq], LadoDer, 'and L')) :-
+
+%--------------------------------------
+% CONJUNCIÓN (∧)
+%--------------------------------------
+lpk([F1 and F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1, F2], RestoIzq, NuevoIzq),
-    lpk_latex(NuevoIzq, LadoDer, VarsIzq, VarsDer, SubTree).
+    lpk(NuevoIzq, LadoDer, VarsIzq, VarsDer, SubArbol),
+    ArbolDerivacion = unaria(SubArbol, [F1 and F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, 'and-izq').
 
-% Conjunción derecha
-lpk_latex(LadoIzq, [F1 and F2 | RestoDer], VarsIzq, VarsDer, rule2(SubTree1, SubTree2, LadoIzq, RestoDer, 'and R')) :-
+lpk(LadoIzq, [F1 and F2 | RestoDer], VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1], RestoDer, Der1),
     append([F2], RestoDer, Der2),
-    lpk_latex(LadoIzq, Der1, VarsIzq, VarsDer, SubTree1),
-    lpk_latex(LadoIzq, Der2, VarsIzq, VarsDer, SubTree2).
+    lpk(LadoIzq, Der1, VarsIzq, VarsDer, SubArbol1),
+    lpk(LadoIzq, Der2, VarsIzq, VarsDer, SubArbol2),
+    ArbolDerivacion = binaria(SubArbol1, SubArbol2, LadoIzq, [F1 and F2 | RestoDer], VarsIzq, VarsDer, 'and-der').
 
-% Implicación izquierda
-lpk_latex([F1 imp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, rule2(SubTree1, SubTree2, RestoIzq, LadoDer, 'imp L')) :-
+
+%--------------------------------------
+% IMPLICACIÓN (→)
+%--------------------------------------
+lpk([F1 imp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1], LadoDer, NuevoDer),
     append([F2], RestoIzq, NuevoIzq),
-    lpk_latex(RestoIzq, NuevoDer, VarsIzq, VarsDer, SubTree1),
-    lpk_latex(NuevoIzq, LadoDer, VarsIzq, VarsDer, SubTree2).
+    lpk(RestoIzq, NuevoDer, VarsIzq, VarsDer, SubArbol1),
+    lpk(NuevoIzq, LadoDer, VarsIzq, VarsDer, SubArbol2),
+    ArbolDerivacion = binaria(SubArbol1, SubArbol2, [F1 imp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, 'imp-izq').
 
-% Implicación derecha
-lpk_latex(LadoIzq, [F1 imp F2 | RestoDer], VarsIzq, VarsDer, rule(SubTree, [F1|LadoIzq], [F2|RestoDer], 'imp R')) :-
+lpk(LadoIzq, [F1 imp F2 | RestoDer], VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1], LadoIzq, NuevoIzq),
     append([F2], RestoDer, NuevoDer),
-    lpk_latex(NuevoIzq, NuevoDer, VarsIzq, VarsDer, SubTree).
+    lpk(NuevoIzq, NuevoDer, VarsIzq, VarsDer, SubArbol),
+    ArbolDerivacion = unaria(SubArbol, LadoIzq, [F1 imp F2 | RestoDer], VarsIzq, VarsDer, 'imp-der').
 
-% Doble implicación izquierda
-lpk_latex([F1 dimp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, rule2(SubTree1, SubTree2, RestoIzq, LadoDer, 'dimp L')) :-
+
+%--------------------------------------
+% DOBLE IMPLICACIÓN (↔)
+%--------------------------------------
+lpk([F1 dimp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1, F2], LadoDer, NuevoDer),
     append([F1, F2], RestoIzq, NuevoIzq),
-    lpk_latex(RestoIzq, NuevoDer, VarsIzq, VarsDer, SubTree1),
-    lpk_latex(NuevoIzq, LadoDer, VarsIzq, VarsDer, SubTree2).
+    lpk(RestoIzq, NuevoDer, VarsIzq, VarsDer, SubArbol1),
+    lpk(NuevoIzq, LadoDer, VarsIzq, VarsDer, SubArbol2),
+    ArbolDerivacion = binaria(SubArbol1, SubArbol2, [F1 dimp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer, 'dimp-izq').
 
-% Doble implicación derecha
-lpk_latex(LadoIzq, [F1 dimp F2 | RestoDer], VarsIzq, VarsDer, rule2(SubTree1, SubTree2, LadoIzq, RestoDer, 'dimp R')) :-
+lpk(LadoIzq, [F1 dimp F2 | RestoDer], VarsIzq, VarsDer, ArbolDerivacion) :-
     append([F1], LadoIzq, Izq1),
     append([F2], RestoDer, Der1),
     append([F2], LadoIzq, Izq2),
     append([F1], RestoDer, Der2),
-    lpk_latex(Izq1, Der1, VarsIzq, VarsDer, SubTree1),
-    lpk_latex(Izq2, Der2, VarsIzq, VarsDer, SubTree2).
+    lpk(Izq1, Der1, VarsIzq, VarsDer, SubArbol1),
+    lpk(Izq2, Der2, VarsIzq, VarsDer, SubArbol2),
+    ArbolDerivacion = binaria(SubArbol1, SubArbol2, LadoIzq, [F1 dimp F2 | RestoDer], VarsIzq, VarsDer, 'dimp-der').
 
 
 %--------------------------------------
-% IMPRESIÓN DEL ÁRBOL EN LATEX
+% GENERACIÓN DEL CÓDIGO LATEX
 %--------------------------------------
-print_tree(axiom(Left, Right, Label)) :-
-    format('\\AxiomC{$'),
-    print_sequent(Left, Right),
-    format('$}\\RightLabel{\\scriptsize ~w}\n', [Label]).
 
-print_tree(rule(SubTree, Left, Right, Label)) :-
-    print_tree(SubTree),
-    format('\\UnaryInfC{$'),
-    print_sequent(Left, Right),
-    format('$}\\RightLabel{\\scriptsize ~w}\n', [Label]).
+% CAMBIO PRINCIPAL: escribir_arbol ahora usa los contextos completos
 
-print_tree(rule2(SubTree1, SubTree2, Left, Right, Label)) :-
-    print_tree(SubTree1),
-    print_tree(SubTree2),
-    format('\\BinaryInfC{$'),
-    print_sequent(Left, Right),
-    format('$}\\RightLabel{\\scriptsize ~w}\n', [Label]).
+% Caso: axioma
+escribir_arbol(axioma(Izquierda, Derecha, VarsIzq, VarsDer)) :-
+    write('    \\AxiomC{\\colorbox{yellow}{$'),
+    escribir_secuente_con_contexto(Izquierda, Derecha, VarsIzq, VarsDer),
+    write('$}}'), nl.
 
-print_sequent(Left, Right) :-
-    print_formulas(Left),
+% Caso: inferencia unaria
+escribir_arbol(unaria(SubArbol, Izquierda, Derecha, VarsIzq, VarsDer, _Regla)) :-
+    escribir_arbol(SubArbol),
+    write('    \\UnaryInfC{$'),
+    escribir_secuente_con_contexto(Izquierda, Derecha, VarsIzq, VarsDer),
+    write('$}'), nl.
+
+% Caso: inferencia binaria
+escribir_arbol(binaria(SubArbol1, SubArbol2, Izquierda, Derecha, VarsIzq, VarsDer, _Regla)) :-
+    escribir_arbol(SubArbol1),
+    escribir_arbol(SubArbol2),
+    write('    \\BinaryInfC{$'),
+    escribir_secuente_con_contexto(Izquierda, Derecha, VarsIzq, VarsDer),
+    write('$}'), nl.
+
+
+%--------------------------------------
+% ESCRITURA DE SECUENTES CON CONTEXTO
+%--------------------------------------
+
+% NUEVA FUNCIÓN: Combina las fórmulas activas con el contexto acumulado
+escribir_secuente_con_contexto(Izquierda, Derecha, VarsIzq, VarsDer) :-
+    % Filtrar solo fórmulas compuestas (no átomos) para evitar duplicados
+    filtrar_no_atomicas(Izquierda, IzqFormulas),
+    filtrar_no_atomicas(Derecha, DerFormulas),
+    % Combinar: fórmulas compuestas + contexto de variables
+    append(IzqFormulas, VarsIzq, IzqCompleta),
+    append(DerFormulas, VarsDer, DerCompleta),
+    escribir_formulas(IzqCompleta),
     write(' \\vdash '),
-    print_formulas(Right).
+    escribir_formulas(DerCompleta).
 
-print_formulas([]) :- write('\\varnothing').
-print_formulas([F]) :- !, print_formula(F).
-print_formulas([F|Rest]) :-
-    print_formula(F),
-    write(', '),
-    print_formulas(Rest).
-
-print_formula(neg F) :-
-    write('\\neg '),
-    print_formula_paren(F).
-print_formula(F1 and F2) :-
-    print_formula_paren(F1),
-    write(' \\land '),
-    print_formula_paren(F2).
-print_formula(F1 or F2) :-
-    print_formula_paren(F1),
-    write(' \\lor '),
-    print_formula_paren(F2).
-print_formula(F1 imp F2) :-
-    print_formula_paren(F1),
-    write(' \\rightarrow '),
-    print_formula_paren(F2).
-print_formula(F1 dimp F2) :-
-    print_formula_paren(F1),
-    write(' \\leftrightarrow '),
-    print_formula_paren(F2).
-print_formula(Atom) :- atom(Atom), write(Atom).
-
-print_formula_paren(F) :-
-    (compound(F) -> (write('('), print_formula(F), write(')')) ; print_formula(F)).
+% Filtra solo fórmulas compuestas (elimina átomos simples)
+filtrar_no_atomicas([], []).
+filtrar_no_atomicas([F|Resto], [F|Resultado]) :-
+    compound(F),
+    !,
+    filtrar_no_atomicas(Resto, Resultado).
+filtrar_no_atomicas([_|Resto], Resultado) :-
+    filtrar_no_atomicas(Resto, Resultado).
 
 
 %--------------------------------------
-% MOTOR ORIGINAL (sin LaTeX)
+% ESCRITURA DE LISTAS DE FÓRMULAS
 %--------------------------------------
-lpk([], [], [Var | RestoIzq], VarsDer) :-
-    member(Var, VarsDer);
-    lpk([], [], RestoIzq, VarsDer).
+escribir_formulas([]) :- !.
 
-lpk([Atom | RestoIzq], LadoDer, VarsIzq, VarsDer) :-
+escribir_formulas([Formula]) :-
+    !,
+    escribir_formula(Formula).
+
+escribir_formulas([Formula | Resto]) :-
+    escribir_formula(Formula),
+    write(',\\ '),
+    escribir_formulas(Resto).
+
+
+%--------------------------------------
+% ESCRITURA DE FÓRMULAS INDIVIDUALES
+%--------------------------------------
+escribir_formula(neg F) :-
+    write('\\NEG '),
+    (compound(F) ->
+        write('('), escribir_formula(F), write(')')
+    ;
+        escribir_formula(F)
+    ).
+
+escribir_formula(F1 and F2) :-
+    escribir_con_parentesis(F1),
+    write(' \\AND '),
+    escribir_con_parentesis(F2).
+
+escribir_formula(F1 or F2) :-
+    escribir_con_parentesis(F1),
+    write(' \\OR '),
+    escribir_con_parentesis(F2).
+
+escribir_formula(F1 imp F2) :-
+    escribir_con_parentesis(F1),
+    write(' \\IMP '),
+    escribir_con_parentesis(F2).
+
+escribir_formula(F1 dimp F2) :-
+    escribir_con_parentesis(F1),
+    write(' \\DIMP '),
+    escribir_con_parentesis(F2).
+
+escribir_formula(Atom) :-
     atom(Atom),
-    append([Atom], VarsIzq, NuevasVarsIzq),
-    lpk(RestoIzq, LadoDer, NuevasVarsIzq, VarsDer).
+    write(Atom).
 
-lpk(LadoIzq, [Atom | RestoDer], VarsIzq, VarsDer) :-
-    atom(Atom),
-    append([Atom], VarsDer, NuevasVarsDer),
-    lpk(LadoIzq, RestoDer, VarsIzq, NuevasVarsDer).
 
-lpk([neg F | RestoIzq], LadoDer, VarsIzq, VarsDer) :-
-    append([F], LadoDer, NuevoDer),
-    lpk(RestoIzq, NuevoDer, VarsIzq, VarsDer).
-
-lpk(LadoIzq, [neg F | RestoDer], VarsIzq, VarsDer) :-
-    append([F], LadoIzq, NuevoIzq),
-    lpk(NuevoIzq, RestoDer, VarsIzq, VarsDer).
-
-lpk([F1 or F2 | RestoIzq], LadoDer, VarsIzq, VarsDer) :-
-    append([F1], RestoIzq, Caso1),
-    append([F2], RestoIzq, Caso2),
-    lpk(Caso1, LadoDer, VarsIzq, VarsDer),
-    lpk(Caso2, LadoDer, VarsIzq, VarsDer).
-
-lpk(LadoIzq, [F1 or F2 | RestoDer], VarsIzq, VarsDer) :-
-    append([F1, F2], RestoDer, NuevoDer),
-    lpk(LadoIzq, NuevoDer, VarsIzq, VarsDer).
-
-lpk([F1 and F2 | RestoIzq], LadoDer, VarsIzq, VarsDer) :-
-    append([F1, F2], RestoIzq, NuevoIzq),
-    lpk(NuevoIzq, LadoDer, VarsIzq, VarsDer).
-
-lpk(LadoIzq, [F1 and F2 | RestoDer], VarsIzq, VarsDer) :-
-    append([F1], RestoDer, Der1),
-    append([F2], RestoDer, Der2),
-    lpk(LadoIzq, Der1, VarsIzq, VarsDer),
-    lpk(LadoIzq, Der2, VarsIzq, VarsDer).
-
-lpk([F1 imp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer) :-
-    append([F1], LadoDer, NuevoDer),
-    append([F2], RestoIzq, NuevoIzq),
-    lpk(RestoIzq, NuevoDer, VarsIzq, VarsDer),
-    lpk(NuevoIzq, LadoDer, VarsIzq, VarsDer).
-
-lpk(LadoIzq, [F1 imp F2 | RestoDer], VarsIzq, VarsDer) :-
-    append([F1], LadoIzq, NuevoIzq),
-    append([F2], RestoDer, NuevoDer),
-    lpk(NuevoIzq, NuevoDer, VarsIzq, VarsDer).
-
-lpk([F1 dimp F2 | RestoIzq], LadoDer, VarsIzq, VarsDer) :-
-    append([F1, F2], LadoDer, NuevoDer),
-    append([F1, F2], RestoIzq, NuevoIzq),
-    lpk(RestoIzq, NuevoDer, VarsIzq, VarsDer),
-    lpk(NuevoIzq, LadoDer, VarsIzq, VarsDer).
-
-lpk(LadoIzq, [F1 dimp F2 | RestoDer], VarsIzq, VarsDer) :-
-    append([F1], LadoIzq, Izq1),
-    append([F2], RestoDer, Der1),
-    append([F2], LadoIzq, Izq2),
-    append([F1], RestoDer, Der2),
-    lpk(Izq1, Der1, VarsIzq, VarsDer),
-    lpk(Izq2, Der2, VarsIzq, VarsDer).
+%--------------------------------------
+% MANEJO DE PARÉNTESIS
+%--------------------------------------
+escribir_con_parentesis(Formula) :-
+    (compound(Formula), Formula \= neg(_) ->
+        write('('), escribir_formula(Formula), write(')')
+    ;
+        escribir_formula(Formula)
+    ).
 
 
 /****************************************
- *        EJEMPLOS DE USO               *
+ *        EJEMPLOS DE EJECUCIÓN         *
  ****************************************/
 
 /** <examples>
-% Para verificar validez sin LaTeX:
-?- checkExpression(((p imp q) and (q imp r)) imp (p imp r)).
-
-% Para generar el árbol en LaTeX:
-?- checkExpressionLatex(((p imp q) and (q imp r)) imp (p imp r)).
-
-% El resultado se puede copiar y compilar con pdflatex
+?- checkExpression(((p imp q) and (q imp r)) imp (p imp r)), !.            % true
+?- checkExpression(neg (p and q) dimp (neg p or neg q)), !.                % true
+?- checkExpression(((p imp q) imp q) imp q), !.                            % false
+?- checkExpression(((p imp q) imp p) imp q), !.                            % false
+?- checkExpression((p or neg (q and r)) imp ((p dimp r) or q)), !.         % false
+?- checkExpression((p and q) imp (p or r)), !.                             % true
+?- checkExpression((p imp q) or (q imp p)), !.                             % true
+?- checkExpression((p imp q) dimp (neg q imp p)), !.                       % false
+?- checkExpression(((neg p imp q) and (neg p imp neg q)) imp p), !.        % true
+?- checkExpression(((p imp q) imp q) imp p), !.                            % false
+?- checkExpression(((q imp r) imp (p imp q)) imp (p imp q)), !.            % true
+?- checkExpression(p imp (q imp (q imp p))), !.                            % true
+?- checkExpression((p dimp q) dimp (p dimp (q dimp p))), !.                % false
+?- checkExpression(neg (p imp q) imp p), !.                                % true
 */
